@@ -1,0 +1,23 @@
+version: "3.3"
+services:
+  seafile:
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: none
+    image: nikoglyph/seafile-server
+    ports:
+        - "80:80"
+    environment:
+        - SEAFILE_EXTERNAL_PORT=80
+        - SEAFILE_HOSTNAME=localhost
+        - SEAFILE_SERVER_NAME=myseafile
+        - SEAFILE_ADMIN_MAIL=admin@seafile.com
+        - SEAFILE_ADMIN_PASSWORD=test123
+        - USE_SSL=off
+    volumes:
+      - type: bind
+        source: /tmp/seafile
+        target: /data
+#        - ./test/ssl:/etc/ssl

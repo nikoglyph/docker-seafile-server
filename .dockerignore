@@ -1,0 +1,7 @@
+build-*.sh
+*.md
+*.yml
+.git*
+LICENSE.txt
+Makefile
+test

@@ -1,4 +1,5 @@
-FROM ubuntu:16.04
+ARG DOCKER_BASE_IMAGE=debian:stretch-slim
+FROM ${DOCKER_BASE_IMAGE}
 
 MAINTAINER André Stein
 
@@ -7,26 +8,42 @@ EXPOSE 443
 
 VOLUME /data
 
-# seafile version updates here
-# make sure that SEAFILE_MAJOR matches SEAFILE_VERSION!
-# additional the seafile versions may be passed as --build-arg variables
-# thus overriding this default!
-ARG SEAFILE_VERSION=6.0.5
+ARG SEAFILE_VERSION=6.2.2
 ENV SEAFILE_VERSION ${SEAFILE_VERSION}
-ARG SEAFILE_MAJOR=6.0
-ENV SEAFILE_MAJOR ${SEAFILE_MAJOR}
+
+# Download location. Options currently:
+# <https://download.seadrive.org> | <https://github.com/haiwen/seafile-rpi/releases/download/v${SEAFILE_VERSION}>
+ARG SEAFILE_DOWNLOAD_URL=https://download.seadrive.org
+# CPU architecture qualifier part of filename of seafile binaries.
+# Please note that armhf i.e. 'stable_pi' is only available from haiwen's github repo. Current options:
+# <x86-64> | <i386> | <stable_pi>
+ARG SEAFILE_ARCH_QUALIFIER=x86-64
 
 # Install seafile dependencies and make sure to clean
-# all apt caches
-RUN DEBIAN_FRONTEND=noninteractive apt-get update -q --fix-missing && \
-	apt-get -y install python wget nginx && \
-	apt-get -y install python2.7 libpython2.7 python-setuptools python-imaging python-ldap python-urllib3 sqlite3 && \
-	apt-get autoclean && rm -rf /var/lib/apt/lists/* && \
-	rm -rf /usr/share/locale/* && rm -rf /usr/share/man/* && rm -rf /usr/share/doc/*
+# all apt caches, locales, man pages and docs
+RUN apt-get update && apt-get -y install \
+	libpython2.7 \
+	nginx \
+	procps \
+	python2.7 \
+	python-imaging \
+	python-ldap \
+	python-requests \
+	python-setuptools \
+	python-urllib3 \
+	sqlite3 \
+	wget && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm -rf /usr/share/locale/* && \
+    rm -rf /usr/share/man/* && \
+    rm -rf /usr/share/doc/*
 
 # download and extract seafile release
-RUN mkdir seafile && cd /seafile && \
-	wget -O - https://bintray.com/artifact/download/seafile-org/seafile/seafile-server_${SEAFILE_VERSION}_x86-64.tar.gz | tar xzvf -
+RUN mkdir seafile && \
+    cd /seafile && \
+	wget -O - ${SEAFILE_DOWNLOAD_URL}/seafile-server_${SEAFILE_VERSION}_${SEAFILE_ARCH_QUALIFIER}.tar.gz | tar xzf -
 
 # run initial seafile setup script with initial placeholder
 # values which will be patched in the container start script
@@ -34,7 +51,7 @@ RUN cd /seafile/seafile-server-* && ./setup-seafile.sh auto \
 	-n "xxxseafilexxx" \
 	-i 000.000.000.000
 
-ADD target/start-seafile.sh /usr/local/bin/
+COPY start-seafile.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/start-seafile.sh
 
 # patch seahub's check_init_admin.py script which tries to
@@ -48,7 +65,7 @@ RUN sed -i 's@read dummy@@g' /seafile/seafile-server-latest/upgrade/upgrade_*sh
 
 # setup nginx configuration files
 RUN rm /etc/nginx/sites-*/*
-COPY target/nginx/seafile-*.conf /etc/nginx/sites-available/
-COPY target/nginx/snippets/* /etc/nginx/snippets/
+COPY nginx/seafile-*.conf /etc/nginx/sites-available/
+COPY nginx/snippets/* /etc/nginx/snippets/
 
 CMD /usr/local/bin/start-seafile.sh

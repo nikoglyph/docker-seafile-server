@@ -4,6 +4,10 @@ set -u
 set -e
 set -o pipefail
 
+# infer SEAFILE_MAJOR from SEAFILE_VERSION
+read major minor revision <<< $( echo ${SEAFILE_VERSION} | awk -F"." '{print $1" "$2" "$3}' )
+SEAFILE_MAJOR=${major}.${minor:-0}
+
 # copy initial seahub data folder if not existant
 # and copy initial seafile data sqlite database if not existant
 if [[ ! -f /data/seahub.db ]] && [[ ! -f /data/seahub-data ]]; then
@@ -63,10 +67,10 @@ if [[ "$current_major" != "${SEAFILE_MAJOR}" ]]; then
 fi
 
 # Setup nginx
-sed -i "s@%hostname%@${SEAFILE_HOSTNAME}@g" \
-  /etc/nginx/sites-available/*.conf /etc/nginx/snippets/*
+sed -i "s@%hostname%@${SEAFILE_HOSTNAME}@g" /etc/nginx/sites-available/*.conf /etc/nginx/snippets/*
 sed -i "s@%cert_file%@${SSL_CERT_FILE:-/etc/ssl/cert.pem}@g" /etc/nginx/sites-available/seafile-https.conf
 sed -i "s@%privkey_file%@${SSL_PRIVKEY_FILE:-/etc/ssl/privkey.pem}@g" /etc/nginx/sites-available/seafile-https.conf
+sed -i "s@%dhparam_file%@${SSL_DHPARAM_FILE:-/etc/ssl/dhparam.pem}@g" /etc/nginx/sites-available/seafile-https.conf
 
 # cleanup old server configuration
 rm -f /etc/nginx/sites-enabled/*
@@ -85,6 +89,9 @@ fi
 sed -i "s@SERVICE\_URL.*@SERVICE\_URL = $protocol\:\/\/${SEAFILE_HOSTNAME}\:${SEAFILE_EXTERNAL_PORT}@g" /seafile/conf/ccnet.conf
 echo "FILE_SERVER_ROOT = '$protocol://${SEAFILE_HOSTNAME}:${SEAFILE_EXTERNAL_PORT}/seafhttp'" >> /seafile/conf/seahub_settings.py
 
+# enable two-factor authentication
+echo "ENABLE_TWO_FACTOR_AUTH = True" >> /seafile/conf/seahub_settings.py
+
 #
 # start the services
 #
@@ -92,7 +99,7 @@ echo "FILE_SERVER_ROOT = '$protocol://${SEAFILE_HOSTNAME}:${SEAFILE_EXTERNAL_POR
 cd /seafile/seafile-server-latest
 
 echo "Starting seafile.." && ./seafile.sh start
-echo "Starting seahub..." && ./seahub.sh start-fastcgi
+echo "Starting seahub..." && ./seahub.sh start
 
 service nginx start || (tail /var/log/nginx/error.log; exit 1;)
 
