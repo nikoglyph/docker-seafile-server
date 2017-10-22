@@ -21,6 +21,7 @@ ARG SEAFILE_ARCH_QUALIFIER=x86-64
 
 # Install seafile dependencies and make sure to clean
 # all apt caches, locales, man pages and docs
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get -y install \
 	libpython2.7 \
 	net-tools \
