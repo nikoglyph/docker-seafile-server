@@ -23,6 +23,7 @@ ARG SEAFILE_ARCH_QUALIFIER=x86-64
 # all apt caches, locales, man pages and docs
 RUN apt-get update && apt-get -y install \
 	libpython2.7 \
+	net-tools \
 	nginx \
 	procps \
 	python2.7 \
@@ -41,9 +42,8 @@ RUN apt-get update && apt-get -y install \
     rm -rf /usr/share/doc/*
 
 # download and extract seafile release
-RUN mkdir seafile && \
-    cd /seafile && \
-	wget -O - ${SEAFILE_DOWNLOAD_URL}/seafile-server_${SEAFILE_VERSION}_${SEAFILE_ARCH_QUALIFIER}.tar.gz | tar xzf -
+RUN mkdir seafile && cd /seafile && \
+    wget -O- ${SEAFILE_DOWNLOAD_URL}/seafile-server_${SEAFILE_VERSION}_${SEAFILE_ARCH_QUALIFIER}.tar.gz | tar xzf -
 
 # run initial seafile setup script with initial placeholder
 # values which will be patched in the container start script
