@@ -11,6 +11,7 @@ if [[ ! -f /data/seahub.db ]] && [[ ! -f /data/seahub-data ]]; then
     cp /seafile/seahub.db /data/
     cp -rv /seafile/seahub-data /data
     cp -rv /seafile/seafile-data /data
+    cp -rv /seafile/ccnet /data
 
     # initialize seafile major version in /data folder
     echo -n ${SEAFILE_MAJOR} > /data/seafile_version
@@ -18,10 +19,11 @@ fi
 
 # remove initial seafile data files and replace
 # them my symlinks to /data folder
-rm -rf /seafile/seahub-data /seafile/seafile-data /seafile/seahub.db
+rm -rf /seafile/seahub-data /seafile/seafile-data /seafile/seahub.db /seafile/ccnet
 ln -s /data/seahub-data /seafile
 ln -s /data/seahub.db /seafile
 ln -s /data/seafile-data /seafile
+ln -s /data/ccnet /seafile
 
 echo "Adapting configuration of seafile service:"
 echo " - hostname: ${SEAFILE_HOSTNAME}"
